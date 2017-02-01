@@ -1,0 +1,139 @@
+<script type="text/javascript">
+  RED.nodes.registerType('bravia-api', {
+    category: 'devices',
+    color: '#b8535a',
+    icon: 'tv.png',
+    defaults: {
+      tv: { type: 'bravia-tv', required: true },
+      method: { value: '', required: false },
+      payload: { value: '', required: false },
+      name: { value: '', required: false }
+    },
+    inputs: 1,
+    outputs: 1,
+    align: 'right',
+    label: function() {
+      return (this.name || 'bravia api');
+    },
+    oneditprepare: function() {
+      function refreshUsage() {
+        var value = $('#node-input-method').val();
+        var config = RED.nodes.node($('#node-input-tv').val());
+
+        if ($('#node-input-method').prop('tagName') === 'SELECT' && value && config && config.host && config.port && config.psk) {
+          var selected = $('#node-input-method option:selected');
+          $.get('/bravia/method', {
+              host: config.host,
+              port: config.port,
+              psk: config.psk,
+              protocol: selected.data('protocol'),
+              version: selected.data('version'),
+              method: selected.data('method')
+            })
+            .done(function(data) {
+              var method = JSON.parse(data);
+              var usage = '<p>Below is the usage information for:</p><p><b>' + selected.data('protocol') + ':' + selected.data('version') + ':' + selected.data('method') + '</b></p>';
+              if (method[1].length > 0) {
+                usage += 'Payload: <pre>';
+                method[1].forEach(function(result, index) {
+                  usage += result;
+                  if (index < method[1].length - 1) {
+                    usage += '<br />';
+                  }
+                });
+                usage += '</pre>';
+              }
+
+              if (method[2].length > 0) {
+                usage += 'Results: <pre>';
+                method[2].forEach(function(result, index) {
+                  usage += result;
+                  if (index < (method[2].length - 1)) {
+                    usage += ',<br />';
+                  }
+                });
+                usage += '</pre>';
+              }
+
+              $('#method-usage').html(usage);
+            })
+            .fail(function(error) {
+              RED.notify('Failed to retrieve API method usage, check your TV connection settings.', 'error');
+            });
+        } else {
+          $('#method-usage').text('Select an API method to show usage information.');
+        }
+      }
+
+      $('#node-input-tv').on('change', function() {
+        var value = $('#node-input-method').val();
+        var config = RED.nodes.node($('#node-input-tv').val());
+
+        $('#node-input-method').off('change');
+        $('#node-input-method').replaceWith('<input type="text" id="node-input-method">');
+        $('#node-input-method').val(value);
+        refreshUsage();
+
+        if (config && config.host && config.port && config.psk) {
+          $.get('/bravia/methods', { host: config.host, port: config.port, psk: config.psk })
+            .done(function(data) {
+              var protocols = JSON.parse(data);
+              if (protocols.length === 0) {
+                RED.notify('No API methods retrieved, check your TV connection settings.', 'error');
+                return;
+              }
+
+              $('#node-input-method').replaceWith('<select id="node-input-method" style="width: 70%;"></select>');
+              $('#node-input-method').append('<option value=""></option>');
+              protocols.forEach(function(protocol) {
+                let versions = protocol.versions;
+                versions.forEach(function(version) {
+                  let methods = version.methods;
+                  methods.forEach(function(method) {
+                    $('#node-input-method').append('<option value="' + protocol.protocol + ':' + version.version + ':' + method[0] + '" data-protocol="' + protocol.protocol + '" data-version="' + version.version + '" data-method="' + method[0] + '">' + protocol.protocol + ':' + version.version + ':' + method[0] + '</option>');
+                  });
+                });
+              });
+
+              $('#node-input-method').on('change', refreshUsage);
+              $('#node-input-method').val(value);
+              refreshUsage();
+            })
+            .fail(function(error) {
+              RED.notify('Failed to retrieve API methods, check your TV connection settings.', 'error');
+            });
+        }
+      });
+    }
+  });
+</script>
+
+<script type="text/x-red" data-template-name="bravia-api">
+  <div class="form-row">
+    <label for="node-input-tv"><i class="fa fa-television"></i> TV</label>
+    <input type="text" id="node-input-tv">
+  </div>
+  <div class="form-row">
+    <label for="node-input-method"><i class="fa fa-tasks"></i> Method</label>
+    <input type="text" id="node-input-method">
+  </div>
+  <div class="form-row">
+    <label for="node-input-payload"><i class="fa fa-envelope"></i> Payload</label>
+    <input type="text" id="node-input-payload">
+  </div>
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+  <div class="form-tips">
+    <span id="method-usage">
+      Select an API method to show usage information.
+    </span>
+  </div>
+</script>
+
+<script type="text/x-red" data-help-name="bravia-api">
+  <p>Invokes a service protocol API method on a Sony BRAVIA Android TV.</p>
+  <p>The method name can be specified either in the config or via <b>msg.method</b> and <b>MUST</b> be in the format <i>protocol:version:method</i>.</p>
+  <p>The payload can be specified either in the config or via <b>msg.payload</b>.</p>
+</script>

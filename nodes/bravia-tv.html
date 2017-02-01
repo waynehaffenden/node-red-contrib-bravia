@@ -1,0 +1,104 @@
+<script type="text/javascript">
+  RED.nodes.registerType('bravia-tv', {
+    category: 'config',
+    defaults: {
+      name: { value: '' },
+      host: { value: '', required: true },
+      port: { value: 80, required: true, validate: RED.validators.number() },
+      psk: { value: '0000', required: true }
+    },
+    label: function() {
+      return (this.name || 'bravia tv');
+    },
+    oneditprepare: function() {
+      function toggleSelect() {
+        var value = $('#node-config-input-host').val();
+        $('#node-config-input-scan').html('<i class="fa fa-search"></i>');
+        $('#node-config-input-host').off('change');
+        $('#node-config-input-host').replaceWith('<input type="text" id="node-config-input-host" style="width: 100%;">');
+        $('#node-config-input-host').val(value);
+      }
+
+      function toggleInput() {
+        var value = $('#node-config-input-host').val();
+        RED.notify('Discovering Sony BRAVIA devices...');
+        $.get('/bravia/discover')
+          .done(function(data) {
+            var devices = JSON.parse(data);
+            if (devices.length === 0) {
+              RED.notify('No Sony BRAVIA devices found.', 'error');
+              return;
+            }
+
+            $('#node-config-input-scan').html('<i class="fa fa-i-cursor"></i>');
+            $('#node-config-input-host').replaceWith('<select id="node-config-input-host" style="width: 100%;"></select>');
+            devices.forEach(function(device) {
+              $('#node-config-input-host').append('<option value="' + device.host + '" data-port="' + device.port + '">' + device.modelName + ' - ' + device.host + '</option>');
+            });
+
+            $('#node-config-input-host').on('change', changePort);
+            if (devices.length === 1) {
+              value = devices[0].host;
+            }
+
+            $('#node-config-input-host').val(value);
+
+            if (devices.length === 1) {
+              changePort();
+            }
+          })
+          .fail(function() {
+            RED.notify('Sony BRAVIA device discovery failed.', 'error');
+          });
+      }
+
+      function changePort() {
+        $('#node-config-input-port').val($('#node-config-input-host option:selected').data('port'));
+      }
+
+      $('#node-config-input-scan').click(function() {
+        if ($('#node-config-input-host').prop('tagName') === 'INPUT') {
+          toggleInput();
+        } else {
+          toggleSelect();
+        }
+      });
+    }
+  });
+</script>
+
+<script type="text/x-red" data-template-name="bravia-tv">
+  <div class="form-row">
+    <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-config-input-name" placeholder="Name">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-host"><i class="fa fa-globe"></i> Host</label>
+    <div style="display: inline-block; position: relative; width: 70%; height: 20px;">
+      <div style="position: absolute; left: 0; right: 40px;">
+        <input type="text" id="node-config-input-host" style="width: 100%;">
+      </div>
+      <a id="node-config-input-scan" class="editor-button" style="position: absolute; right: 0; top: 0; width: 35px;"><i class="fa fa-search"></i></a>
+    </div>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-port"><i class="fa fa-sign-in"></i> Port</label>
+    <input type="text" id="node-config-input-port">
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-psk"><i class="fa fa-key"></i> PSK</label>
+    <input type="text" id="node-config-input-psk">
+  </div>
+  <div class="form-tips">
+    <p>You need to configure the host, port and pre-shared key of the Sony Bravia TV here.</p>
+    <p>
+      Pre-Shared Key TV Setup:
+      <ul>
+        <li>Navigate to Home -> Settings -> Network -> Home Network -> IP Control.</li>
+        <li>Ensure <b>Simple IP Control</b> is set to <b>On</b>.</li>
+        <li>Select <b>Authentication</b> and pick <b>Normal and Pre-Shared Key</b>.</li>
+        <li>Press BACK and select <b>Pre-Shared Key</b> and enter the PSK Key that you wish to use.</li>
+      </ul>
+    </p>
+  </div>
+</script>

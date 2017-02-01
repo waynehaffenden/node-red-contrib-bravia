@@ -1,0 +1,70 @@
+<script type="text/javascript">
+  RED.nodes.registerType('bravia-ircc', {
+    category: 'devices',
+    color: '#b8535a',
+    icon: 'tv.png',
+    defaults: {
+      tv: { type: 'bravia-tv', required: true },
+      ircc: { value: '', required: false },
+      name: { value: '', required: false }
+    },
+    inputs: 1,
+    outputs: 0,
+    align: 'right',
+    label: function() {
+      return (this.name || 'bravia ircc');
+    },
+    oneditprepare: function() {
+      $('#node-input-tv').on('change', function() {
+        var value = $('#node-input-ircc').val();
+        var config = RED.nodes.node($('#node-input-tv').val());
+
+        $('#node-input-ircc').replaceWith('<input type="text" id="node-input-ircc">');
+        $('#node-input-ircc').val(value);
+
+        if (config && config.host && config.port && config.psk) {
+          $.get('/bravia/ircc', { host: config.host, port: config.port, psk: config.psk })
+            .done(function(data) {
+              var commands = JSON.parse(data);
+              if (commands.length === 0) {
+                RED.notify('No IRCC commands retrieved, check your TV connection settings.', 'error');
+                return;
+              }
+
+              $('#node-input-ircc').replaceWith('<select id="node-input-ircc" style="width: 70%;"></select>');
+              $('#node-input-ircc').append('<option value=""></option>');
+              commands.forEach(function(command) {
+                $('#node-input-ircc').append('<option value="' + command.name + '">' + command.name + '</option>');
+              });
+
+              $('#node-input-ircc').val(value);
+            })
+            .fail(function(error) {
+              RED.notify('Failed to retrieve IRCC commands, check your TV connection settings.', 'error');
+            });
+        }
+      });
+    }
+  });
+</script>
+
+<script type="text/x-red" data-template-name="bravia-ircc">
+  <div class="form-row">
+    <label for="node-input-tv"><i class="fa fa-television"></i> TV</label>
+    <input type="text" id="node-input-tv">
+  </div>
+  <div class="form-row">
+    <label for="node-input-ircc"><i class="fa fa-tasks"></i> IRCC</label>
+    <input type="text" id="node-input-ircc">
+  </div>
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+</script>
+
+<script type="text/x-red" data-help-name="bravia-ircc">
+  <p>Sends IRCC codes to a Sony BRAVIA Android TV.</p>
+  <p>The IRCC codes can be specified either in the config or via <b>msg.payload</b>.</p>
+  <p>To send multiple IRCC codes at once specify <b>msg.payload</b> as a comma-delimited string, e.g. <i>Up,Down,Left,Right</i>.</p>
+</script>

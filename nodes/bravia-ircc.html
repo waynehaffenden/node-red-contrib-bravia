@@ -65,6 +65,26 @@
 
 <script type="text/x-red" data-help-name="bravia-ircc">
   <p>Sends IRCC codes to a Sony BRAVIA Android TV.</p>
-  <p>The IRCC codes can be specified either in the config or via <b>msg.payload</b>.</p>
-  <p>To send multiple IRCC codes at once specify <b>msg.payload</b> as a comma-delimited string, e.g. <i>Up,Down,Left,Right</i>.</p>
+  <p>The codes can be specified either in the config or via <code>msg.payload</code> as a string, object or array.</p>
+  <p><strong>Examples</strong></p>
+  <p>String - to send sigle or multiple codes at once specify <code>msg.payload</code> as a comma-delimited string, e.g. <code>Up,Down,Left,Right</i>.</code></p>
+  <p>
+    Object - send a single command, specify <code>msg.payload</code> as an object with either a <code>name</code> or <code>value</code> to send raw IRCC commands., eg.
+    <pre>{
+  value: 'AAAAAQAAAAEAAAA0Aw=='
+}</pre>
+  </p>
+  <p>
+    Array - to send multiple codes at once specify <code>msg.payload</code> as an array of strings and/or objects, eg.
+    <pre>[
+  'Up',
+  {
+    name: 'Down'
+  },
+  {
+    value: 'AAAAAQAAAAEAAAA0Aw=='
+  }
+]</pre>
+  </p>
+
 </script>

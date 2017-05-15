@@ -27,13 +27,22 @@ module.exports = (RED) => {
       return this.bravia[protocol].invoke(method, version, payload);
     }
 
-    sendIRCC(codes) {
+    sendCode(codes) {
       if (!this.bravia) {
         this.node.error('The Sony BRAVIA TV is not configured properly, please check your settings.');
         return;
       }
 
       return this.bravia.send(codes);
+    }
+
+    sendIRCC(ircc) {
+      if (!this.bravia) {
+        this.node.error('The Sony BRAVIA TV is not configured properly, please check your settings.');
+        return;
+      }
+
+      return this.bravia.sendIRCC(ircc);
     }
   }
 

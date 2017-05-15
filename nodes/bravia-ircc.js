@@ -14,17 +14,43 @@ module.exports = (RED) => {
       let node = this;
       this.on('input', msg => {
         let codes = (node.ircc || msg.payload);
+        let promises = [];
+
         if (!codes) {
           node.error('No IRCC code given. Specify either in the config or via msg.payload!');
           return;
+        }
+
+        if (typeof codes === 'object' && !Array.isArray(codes)) {
+          codes = [codes];
         }
 
         if (typeof codes === 'string') {
           codes = codes.split(',');
         }
 
+        for (let code of codes) {
+          promises.push(new Promise((resolve, reject) => {
+            let promise;
+
+            if (typeof code === 'object') {
+              if (code.value) {
+                promise = node.tv.sendIRCC(code.value);
+              } else {
+                promise = node.tv.sendCode(code.name);
+              }
+            } else {
+              promise = node.tv.sendCode(code);
+            }
+
+            promise
+              .then(resolve)
+              .catch(reject);
+          }));
+        }
+
         node.status({ fill: 'blue', shape: 'dot', text: 'Sending...' });
-        node.tv.sendIRCC(codes)
+        Promise.all(promises)
           .then(() => {
             node.status({ fill: 'green', shape: 'dot', text: 'Successful' });
             setTimeout(() => node.status({}), 3000);

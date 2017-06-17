@@ -15,34 +15,55 @@
       return (this.name || 'bravia ircc');
     },
     oneditprepare: function() {
-      $('#node-input-tv').on('change', function() {
+      function toggleSelect() {
+        var value = $('#node-input-ircc').val();
+        $('#node-input-scan').html('<i class="fa fa-search"></i>');
+        $('#node-input-ircc').replaceWith('<input type="text" id="node-input-ircc" style="width: 100%;">');
+        $('#node-input-ircc').val(value);
+      }
+
+      function toggleInput() {
         var value = $('#node-input-ircc').val();
         var config = RED.nodes.node($('#node-input-tv').val());
 
-        $('#node-input-ircc').replaceWith('<input type="text" id="node-input-ircc">');
-        $('#node-input-ircc').val(value);
-
         if (config && config.host && config.port && config.psk) {
+          RED.notify('Retrieving Sony BRAVIA IRCC codes...');
           $.get('/bravia/ircc', { host: config.host, port: config.port, psk: config.psk })
             .done(function(data) {
-              var commands = JSON.parse(data);
-              if (commands.length === 0) {
-                RED.notify('No IRCC commands retrieved, check your TV connection settings.', 'error');
+              var codes = JSON.parse(data);
+              if (codes.length === 0) {
+                RED.notify('No IRCC codes retrieved, check your TV connection settings.', 'error');
                 return;
               }
 
-              $('#node-input-ircc').replaceWith('<select id="node-input-ircc" style="width: 70%;"></select>');
-              $('#node-input-ircc').append('<option value=""></option>');
-              commands.forEach(function(command) {
-                $('#node-input-ircc').append('<option value="' + command.name + '">' + command.name + '</option>');
+              $('#node-input-scan').html('<i class="fa fa-i-cursor"></i>');
+              $('#node-input-ircc').replaceWith('<select id="node-input-ircc" style="width: 100%;"></select>');
+              codes.forEach(function(code) {
+                $('#node-input-ircc').append('<option value="' + code.value + '">' + code.name + '</option>');
               });
 
               $('#node-input-ircc').val(value);
             })
-            .fail(function(error) {
-              RED.notify('Failed to retrieve IRCC commands, check your TV connection settings.', 'error');
+            .fail(function() {
+              RED.notify('Failed to retrieve IRCC codes, check your TV connection settings.', 'error');
             });
         }
+      }
+
+      $('#node-input-scan').click(function() {
+        if ($('#node-input-ircc').prop('tagName') === 'INPUT') {
+          toggleInput();
+        } else {
+          toggleSelect();
+        }
+      });
+
+      $('#node-input-tv').on('change', function() {
+        if ($('#node-input-ircc').prop('tagName') === 'SELECT') {
+          toggleSelect();
+        }
+
+        toggleInput();
       });
     }
   });
@@ -55,7 +76,12 @@
   </div>
   <div class="form-row">
     <label for="node-input-ircc"><i class="fa fa-tasks"></i> IRCC</label>
-    <input type="text" id="node-input-ircc">
+    <div style="display: inline-block; position: relative; width: 70%; height: 20px;">
+      <div style="position: absolute; left: 0; right: 40px;">
+        <input type="text" id="node-input-ircc" style="width: 100%;">
+      </div>
+      <a id="node-input-scan" class="editor-button" style="position: absolute; right: 0; top: 0; width: 35px;"><i class="fa fa-search"></i></a>
+    </div>
   </div>
   <div class="form-row">
     <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -65,6 +91,6 @@
 
 <script type="text/x-red" data-help-name="bravia-ircc">
   <p>Sends IRCC codes to a Sony BRAVIA Android TV.</p>
-  <p>The IRCC codes can be specified either in the config or via <b>msg.payload</b>.</p>
-  <p>To send multiple IRCC codes at once specify <b>msg.payload</b> as a comma-delimited string, e.g. <i>Up,Down,Left,Right</i>.</p>
+  <p>The IRCC codes can be sent by name or value.</p>
+  <p>To send multiple IRCC codes at once specify in the config or via <b>msg.payload</b> as a comma-delimited string, e.g. <i>Hdmi1, AAAAAgAAABoAAABaAw==, Hdmi2, AAAAAgAAABoAAABbAw==</i>.</p>
 </script>

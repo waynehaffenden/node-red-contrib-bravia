@@ -5,7 +5,7 @@
     icon: 'tv.png',
     defaults: {
       tv: { type: 'bravia-tv', required: true },
-      ircc: { value: '', required: false },
+      ircc: { value: '', required: true },
       name: { value: '', required: false }
     },
     inputs: 1,
@@ -22,12 +22,15 @@
         $('#node-input-ircc').val(value);
       }
 
-      function toggleInput() {
+      function toggleInput(invoked = false) {
         var value = $('#node-input-ircc').val();
         var config = RED.nodes.node($('#node-input-tv').val());
 
         if (config && config.host && config.port && config.psk) {
-          RED.notify('Retrieving Sony BRAVIA IRCC codes...');
+          if (invoked) {
+            RED.notify('Retrieving Sony BRAVIA IRCC codes...');
+          }
+
           $.get('/bravia/ircc', { host: config.host, port: config.port, psk: config.psk })
             .done(function(data) {
               var codes = JSON.parse(data);
@@ -36,13 +39,21 @@
                 return;
               }
 
+              var found = codes.find(function(code) {
+                return code.name == value || code.value == value;
+              });
+
+              if (!invoked && value && !found) {
+                return;
+              }
+
               $('#node-input-scan').html('<i class="fa fa-i-cursor"></i>');
               $('#node-input-ircc').replaceWith('<select id="node-input-ircc" style="width: 100%;"></select>');
               codes.forEach(function(code) {
-                $('#node-input-ircc').append('<option value="' + code.value + '">' + code.name + '</option>');
+                $('#node-input-ircc').append('<option value="' + code.name + '">' + code.name + '</option>');
               });
 
-              $('#node-input-ircc').val(value);
+              $('#node-input-ircc').val((found) ? found.name : '');
             })
             .fail(function() {
               RED.notify('Failed to retrieve IRCC codes, check your TV connection settings.', 'error');
@@ -52,7 +63,7 @@
 
       $('#node-input-scan').click(function() {
         if ($('#node-input-ircc').prop('tagName') === 'INPUT') {
-          toggleInput();
+          toggleInput(true);
         } else {
           toggleSelect();
         }

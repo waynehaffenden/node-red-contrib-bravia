@@ -24,7 +24,7 @@ module.exports = (RED) => {
         }
 
         node.status({ fill: 'blue', shape: 'dot', text: 'Sending...' });
-        node.tv.send(codes)
+        node.tv.sendIRCC(codes)
           .then(() => {
             node.status({ fill: 'green', shape: 'dot', text: 'Successful' });
             setTimeout(() => node.status({}), 3000);

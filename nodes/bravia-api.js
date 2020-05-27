@@ -68,16 +68,21 @@ module.exports = (RED) => {
         if (results) {
           methods.push({ protocol: protocols[index - 1], versions: results });
         }
-
         if (index < protocols.length) {
           bravia[protocols[index++]].getMethodTypes()
             .then(next)
-            .catch(error => response.status(500).send(error.message));
+            .catch(error=>{
+ //             console.log(error.message);
+              next()
+            });
         } else {
-          response.end(JSON.stringify(methods));
+          if (methods.length>0){
+            response.end(JSON.stringify(methods));
+          }else{
+            response.status(500).send("Error getting methods, check the connection to your TV")
+          }
         }
       };
-
       next();
     }
   });

@@ -35,6 +35,6 @@
     }
   },
   "dependencies": {
-    "bravia": "^1.3.2"
+    "bravia": "^1.3.3"
   }
 }

@@ -11,10 +11,11 @@ module.exports = (RED) => {
       this.host = config.host;
       this.port = config.port;
       this.psk = config.psk;
+      this.timeout = config.timeout || 5000;
       this.node = this;
 
       if (this.host && this.port && this.psk) {
-        this.bravia = new Bravia(this.host, this.port, this.psk);
+        this.bravia = new Bravia(this.host, this.port, this.psk, this.timeout);
       }
     }
 
